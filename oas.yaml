@@ -1,0 +1,202 @@
+openapi: 3.0.3
+
+info:
+  title: TODO API
+  description: API that allows you to manage a to-do list
+  version: 1.0.0
+
+paths:
+  /todo:
+    get:
+      summary: Returns a list of to-do items
+      operationId: getTasks
+      responses:
+        '200':
+          description: A JSON array of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTasksSchema'
+
+    post:
+      summary: Creates a task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskSchema'
+      responses:
+        '201':
+          description: A JSON representation of the created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTaskSchema'
+          links:
+            GetTask:
+              operationId: getTask
+              parameters:
+                task_id: '$response.body#/id'
+              description: >
+                The `id` value returned in the response can be used as
+                the `task_id` parameter in `GET /todo/{task_id}
+            UpdateTask:
+              operationId: updateTask
+              parameters:
+                task_id: '$response.body#/id'
+              description: >
+                The `id` value returned in the response can be used as
+                the `task_id` parameter in `PUT /todo/{task_id}
+            DeleteTask:
+              operationId: deleteTask
+              parameters:
+                task_id: '$response.body#/id'
+              description: >
+                The `id` value returned in the response can be used as
+                the `task_id` parameter in `DELETE /todo/{task_id}
+
+  /todo/{task_id}:
+    parameters:
+      - in: path
+        name: task_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: d222e7a3-6afb-463a-9709-38eb70cc670d
+    get:
+      summary: Returns the details of a task
+      operationId: getTask
+      responses:
+        '200':
+          description: A JSON representation of a task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTaskSchema'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Replaces an existing task
+      operationId: updateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskSchema'
+      responses:
+        '200':
+          description: A JSON representation of a task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTaskSchema'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Deletes an existing task
+      operationId: deleteTask
+      responses:
+        '204':
+          description: The resource was deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  responses:
+    NotFound:
+      description: The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+
+    CreateTaskSchema:
+      type: object
+      required:
+        - task
+      additionalProperties: false
+      properties:
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          default: low
+        status:
+          type: string
+          enum:
+            - pending
+            - progress
+            - completed
+          default: pending
+        task:
+          type: string
+
+    GetTaskSchema:
+      type: object
+      required:
+        - created
+        - id
+        - priority
+        - status
+        - task
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        created:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          default: low
+        status:
+          type: string
+          enum:
+            - pending
+            - progress
+            - completed
+        task:
+          type: string
+    ListTasksSchema:
+      type: object
+      required:
+        - tasks
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/GetTaskSchema'
+
+security:
+  - bearerAuth:
+      - getTasks
+      - createTask
+      - getTask
+      - updateTask
+      - deleteTask
